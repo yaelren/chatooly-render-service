@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Test Animation</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent;
+    }
+    canvas {
+      display: block;
+      background: transparent;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="800" height="600"></canvas>
+  
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Animation state
+    let currentTime = 0;
+    
+    // Global animation controller (will be overridden by renderer)
+    window.setAnimationTime = function(time) {
+      currentTime = time;
+      draw();
+    };
+    
+    function draw() {
+      // Clear canvas with transparent background
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Calculate animation progress
+      const progress = (currentTime % 3) / 3; // 3-second loop
+      
+      // Draw animated circle
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = 50 + Math.sin(progress * Math.PI * 2) * 20;
+      const x = centerX + Math.cos(progress * Math.PI * 2) * 100;
+      const y = centerY + Math.sin(progress * Math.PI * 2) * 100;
+      
+      // Draw circle with changing color
+      ctx.fillStyle = `hsl(${progress * 360}, 70%, 50%)`;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Draw text
+      ctx.fillStyle = '#333';
+      ctx.font = '24px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`Frame: ${Math.floor(currentTime * 30)}`, centerX, centerY - 100);
+      ctx.fillText(`Time: ${currentTime.toFixed(2)}s`, centerX, centerY + 150);
+    }
+    
+    // Initial draw
+    draw();
+    
+    console.log('Simple animation loaded and ready');
+  </script>
+</body>
+</html>

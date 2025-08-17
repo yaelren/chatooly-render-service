@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: chatooly-render-service
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MAX_CONCURRENT_JOBS
+        value: 3
+      - key: MAX_FRAMES_PER_JOB
+        value: 300
+      - key: MAX_RESOLUTION
+        value: 4
+      - key: CLEANUP_INTERVAL
+        value: 3600000
+      - key: CORS_ORIGIN
+        value: https://yaelren.github.io
+      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+        value: true
+      - key: PUPPETEER_EXECUTABLE_PATH
+        value: /usr/bin/google-chrome-stable
