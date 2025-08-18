@@ -1,4 +1,5 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
+const chromium = require('@sparticuz/chromium');
 const path = require('path');
 const fs = require('fs').promises;
 const config = require('../config');
@@ -12,7 +13,14 @@ class Renderer {
   
   async getBrowser() {
     if (!this.browser || !this.browser.isConnected()) {
-      this.browser = await puppeteer.launch(config.puppeteer);
+      // Use @sparticuz/chromium for Render.com
+      const executablePath = await chromium.executablePath();
+      
+      this.browser = await puppeteer.launch({
+        ...config.puppeteer,
+        executablePath: executablePath,
+        args: chromium.args.concat(config.puppeteer.args || [])
+      });
     }
     return this.browser;
   }
