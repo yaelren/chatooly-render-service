@@ -25,8 +25,8 @@ module.exports = {
       '--window-size=1920,1080',
       '--single-process',
       '--no-zygote'
-    ],
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
+    ]
+    // Let Puppeteer find its own Chrome
   },
   
   storage: {

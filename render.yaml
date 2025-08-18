@@ -22,7 +22,3 @@ services:
         value: 3600000
       - key: CORS_ORIGIN
         value: https://yaelren.github.io
-      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
-        value: true
-      - key: PUPPETEER_EXECUTABLE_PATH
-        value: /usr/bin/google-chrome-stable
