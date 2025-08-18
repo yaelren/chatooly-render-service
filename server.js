@@ -9,12 +9,11 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware - Simple CORS setup
+// Middleware - Basic CORS setup
 app.use(cors({
-  origin: '*', // Allow all origins for testing - can be restricted later
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: false
+  origin: process.env.CORS_ORIGIN || '*',
+  methods: ['GET', 'POST'],
+  credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(morgan('dev'));
