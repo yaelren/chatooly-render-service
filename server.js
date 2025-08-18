@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware - Basic CORS setup
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
+  origin: process.env.CORS_ORIGIN || 'https://yaelren.github.io',
   methods: ['GET', 'POST'],
   credentials: true
 }));
