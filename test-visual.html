@@ -296,7 +296,9 @@
     </div>
     
     <script>
-        const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://chatooly-render-service.onrender.com';
+        // Always use production URL for testing the deployed service
+        const API_URL = 'https://chatooly-render-service.onrender.com';
+        console.log('Using API:', API_URL);
         let animationFrame = 0;
         let currentAnimation = 'spiral';
         
