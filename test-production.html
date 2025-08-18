@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production Test - Chatooly Render Service</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .test-section { margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .loading { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button { padding: 12px 24px; margin: 10px 0; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px; }
+        .download-link { display: inline-block; margin: 10px 0; padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 4px; }
+        .download-link:hover { background: #1e7e34; }
+    </style>
+</head>
+<body>
+    <h1>🎬 Production Test - Chatooly Render Service</h1>
+    <p>Testing the deployed service at: <strong>https://chatooly-render-service.onrender.com</strong></p>
+
+    <div class="test-section">
+        <h2>1. Health Check</h2>
+        <button onclick="testHealth()">Test Health Endpoint</button>
+        <div id="healthStatus"></div>
+        <pre id="healthResponse"></pre>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Available Formats</h2>
+        <button onclick="testFormats()">Check Available Formats</button>
+        <div id="formatsStatus"></div>
+        <pre id="formatsResponse"></pre>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Simple Render Test (ZIP)</h2>
+        <button onclick="testZipRender()" id="zipButton">Start ZIP Render Test</button>
+        <div id="zipStatus"></div>
+        <pre id="zipResponse"></pre>
+        <div id="zipDownload"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Video Render Test (MOV)</h2>
+        <button onclick="testVideoRender()" id="videoButton">Start MOV Render Test</button>
+        <div id="videoStatus"></div>
+        <pre id="videoResponse"></pre>
+        <div id="videoDownload"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Complex Animation Test</h2>
+        <button onclick="testComplexAnimation()" id="complexButton">Start Complex Animation Test</button>
+        <div id="complexStatus"></div>
+        <pre id="complexResponse"></pre>
+        <div id="complexDownload"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://chatooly-render-service.onrender.com';
+
+        async function testHealth() {
+            updateStatus('healthStatus', 'Testing health endpoint...', 'loading');
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                const data = await response.json();
+                
+                if (data.status === 'healthy') {
+                    updateStatus('healthStatus', '✅ Service is healthy!', 'success');
+                } else {
+                    updateStatus('healthStatus', '❌ Service reports unhealthy status', 'error');
+                }
+                
+                document.getElementById('healthResponse').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                updateStatus('healthStatus', `❌ Health check failed: ${error.message}`, 'error');
+                document.getElementById('healthResponse').textContent = error.toString();
+            }
+        }
+
+        async function testFormats() {
+            updateStatus('formatsStatus', 'Checking available formats...', 'loading');
+            try {
+                const response = await fetch(`${API_URL}/render/formats`);
+                const data = await response.json();
+                
+                updateStatus('formatsStatus', `✅ ${data.availableFormats.length} formats available: ${data.availableFormats.join(', ')}`, 'success');
+                document.getElementById('formatsResponse').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                updateStatus('formatsStatus', `❌ Format check failed: ${error.message}`, 'error');
+                document.getElementById('formatsResponse').textContent = error.toString();
+            }
+        }
+
+        async function testZipRender() {
+            const button = document.getElementById('zipButton');
+            button.disabled = true;
+            button.textContent = 'Testing...';
+            
+            updateStatus('zipStatus', 'Creating ZIP render job...', 'loading');
+            
+            try {
+                // Create job
+                const createResponse = await fetch(`${API_URL}/render`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        html: '<canvas id="canvas" width="400" height="300"></canvas><script>const canvas=document.getElementById("canvas");const ctx=canvas.getContext("2d");ctx.fillStyle="#FF6B6B";ctx.fillRect(50,50,100,100);ctx.fillStyle="white";ctx.font="20px Arial";ctx.fillText("Production ZIP Test",60,120);</script>',
+                        duration: 2,
+                        fps: 15,
+                        width: 400,
+                        height: 300,
+                        transparent: false,
+                        toolName: 'production-zip-test',
+                        exportFormat: 'zip'
+                    })
+                });
+                
+                const job = await createResponse.json();
+                updateStatus('zipStatus', `Job created: ${job.jobId}. Waiting for completion...`, 'loading');
+                document.getElementById('zipResponse').textContent = JSON.stringify(job, null, 2);
+                
+                // Poll for completion
+                await pollJobCompletion(job.jobId, 'zipStatus', 'zipResponse', 'zipDownload');
+                
+            } catch (error) {
+                updateStatus('zipStatus', `❌ ZIP test failed: ${error.message}`, 'error');
+                document.getElementById('zipResponse').textContent = error.toString();
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Start ZIP Render Test';
+            }
+        }
+
+        async function testVideoRender() {
+            const button = document.getElementById('videoButton');
+            button.disabled = true;
+            button.textContent = 'Testing...';
+            
+            updateStatus('videoStatus', 'Creating MOV render job...', 'loading');
+            
+            try {
+                // Create job
+                const createResponse = await fetch(`${API_URL}/render`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        html: '<canvas id="canvas" width="600" height="400"></canvas><script>const canvas=document.getElementById("canvas");const ctx=canvas.getContext("2d");window.updateAnimation=function(time){ctx.clearRect(0,0,600,400);const x=300+Math.cos(time*2)*150;const y=200+Math.sin(time*2)*100;ctx.fillStyle="hsl("+(time*100)+",70%,50%)";ctx.beginPath();ctx.arc(x,y,30,0,Math.PI*2);ctx.fill();ctx.fillStyle="white";ctx.font="16px Arial";ctx.fillText("Production MOV Test",250,50);};</script>',
+                        duration: 3,
+                        fps: 24,
+                        width: 600,
+                        height: 400,
+                        transparent: false,
+                        toolName: 'production-mov-test',
+                        exportFormat: 'mov',
+                        videoQuality: 'high'
+                    })
+                });
+                
+                const job = await createResponse.json();
+                updateStatus('videoStatus', `Job created: ${job.jobId}. Waiting for completion...`, 'loading');
+                document.getElementById('videoResponse').textContent = JSON.stringify(job, null, 2);
+                
+                // Poll for completion
+                await pollJobCompletion(job.jobId, 'videoStatus', 'videoResponse', 'videoDownload');
+                
+            } catch (error) {
+                updateStatus('videoStatus', `❌ MOV test failed: ${error.message}`, 'error');
+                document.getElementById('videoResponse').textContent = error.toString();
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Start MOV Render Test';
+            }
+        }
+
+        async function testComplexAnimation() {
+            const button = document.getElementById('complexButton');
+            button.disabled = true;
+            button.textContent = 'Testing...';
+            
+            updateStatus('complexStatus', 'Creating complex animation job...', 'loading');
+            
+            try {
+                // Complex spiral animation
+                const spiralAnimation = `
+                    <canvas id="canvas" width="800" height="600"></canvas>
+                    <script>
+                        const canvas = document.getElementById("canvas");
+                        const ctx = canvas.getContext("2d");
+                        
+                        window.updateAnimation = function(time) {
+                            ctx.clearRect(0, 0, 800, 600);
+                            
+                            const centerX = 400;
+                            const centerY = 300;
+                            const maxRadius = 200;
+                            
+                            for (let i = 0; i < 8; i++) {
+                                const angle = time * 2 + i * Math.PI / 4;
+                                const radius = maxRadius * (0.5 + 0.5 * Math.sin(time + i));
+                                const x = centerX + Math.cos(angle) * radius;
+                                const y = centerY + Math.sin(angle) * radius;
+                                
+                                ctx.beginPath();
+                                ctx.arc(x, y, 15 + i * 3, 0, Math.PI * 2);
+                                ctx.fillStyle = 'hsl(' + ((time * 100 + i * 45) % 360) + ', 70%, 50%)';
+                                ctx.fill();
+                            }
+                            
+                            ctx.fillStyle = "white";
+                            ctx.font = "24px Arial";
+                            ctx.fillText("Complex Production Test", 260, 50);
+                        };
+                    </script>
+                `;
+                
+                const createResponse = await fetch(`${API_URL}/render`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        html: spiralAnimation,
+                        duration: 4,
+                        fps: 30,
+                        width: 800,
+                        height: 600,
+                        transparent: true,
+                        toolName: 'production-complex-test',
+                        exportFormat: 'webm',
+                        videoQuality: 'high'
+                    })
+                });
+                
+                const job = await createResponse.json();
+                updateStatus('complexStatus', `Job created: ${job.jobId}. Waiting for completion...`, 'loading');
+                document.getElementById('complexResponse').textContent = JSON.stringify(job, null, 2);
+                
+                // Poll for completion
+                await pollJobCompletion(job.jobId, 'complexStatus', 'complexResponse', 'complexDownload');
+                
+            } catch (error) {
+                updateStatus('complexStatus', `❌ Complex test failed: ${error.message}`, 'error');
+                document.getElementById('complexResponse').textContent = error.toString();
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Start Complex Animation Test';
+            }
+        }
+
+        async function pollJobCompletion(jobId, statusId, responseId, downloadId) {
+            const maxWait = 180000; // 3 minutes
+            const startTime = Date.now();
+            
+            while (Date.now() - startTime < maxWait) {
+                try {
+                    const statusResponse = await fetch(`${API_URL}/status/${jobId}`);
+                    const status = await statusResponse.json();
+                    
+                    document.getElementById(responseId).textContent = JSON.stringify(status, null, 2);
+                    
+                    if (status.status === 'completed') {
+                        updateStatus(statusId, `✅ Render completed! ${status.totalFrames} frames processed. File size: ${status.fileSize || 'Unknown'}`, 'success');
+                        
+                        // Add download link
+                        const downloadDiv = document.getElementById(downloadId);
+                        const formatName = status.exportFormat?.toUpperCase() || 'FILE';
+                        downloadDiv.innerHTML = `<a href="${API_URL}/download/${jobId}" class="download-link" download>📥 Download ${formatName}</a>`;
+                        
+                        return;
+                    } else if (status.status === 'failed') {
+                        updateStatus(statusId, `❌ Render failed: ${status.error}`, 'error');
+                        return;
+                    } else {
+                        const progress = status.currentFrame ? `${status.currentFrame}/${status.totalFrames}` : 'Starting...';
+                        updateStatus(statusId, `🔄 Processing: ${progress}`, 'loading');
+                    }
+                    
+                } catch (error) {
+                    updateStatus(statusId, `❌ Status check failed: ${error.message}`, 'error');
+                    return;
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+            }
+            
+            updateStatus(statusId, '⏰ Timeout: Render took too long', 'error');
+        }
+
+        function updateStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        // Auto-run health check on page load
+        window.addEventListener('load', () => {
+            testHealth();
+        });
+    </script>
+</body>
+</html>
