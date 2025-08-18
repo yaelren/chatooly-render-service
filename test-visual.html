@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatooly Render Service - Visual Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        input, select {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        input[type="range"] {
+            padding: 0;
+            border: none;
+            background: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #e0e0e0 0%, #667eea 50%, #764ba2 100%);
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        .canvas-container {
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f9f9f9;
+            text-align: center;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            background: white;
+            max-width: 100%;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+        .status-container {
+            background: #f5f5f5;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+            min-height: 100px;
+        }
+        .status-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        #status {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #555;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-top: 10px;
+            display: none;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .download-link {
+            display: inline-block;
+            margin-top: 10px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        .download-link:hover {
+            background: #667eea;
+            color: white;
+        }
+        .animation-select {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .animation-option {
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .animation-option:hover {
+            border-color: #667eea;
+            background: #f5f7ff;
+        }
+        .animation-option.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Chatooly Render Service</h1>
+        <p class="subtitle">Test the PNG sequence rendering locally</p>
+        
+        <div class="animation-select">
+            <div class="animation-option selected" data-animation="spiral">🌀 Spiral</div>
+            <div class="animation-option" data-animation="wave">🌊 Wave</div>
+            <div class="animation-option" data-animation="particles">✨ Particles</div>
+            <div class="animation-option" data-animation="rainbow">🌈 Rainbow</div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="duration">Duration (seconds)</label>
+                <input type="number" id="duration" value="3" min="1" max="10" />
+            </div>
+            <div class="control-group">
+                <label for="fps">FPS</label>
+                <select id="fps">
+                    <option value="15">15 fps</option>
+                    <option value="24">24 fps</option>
+                    <option value="30" selected>30 fps</option>
+                    <option value="60">60 fps</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="width">Width</label>
+                <input type="number" id="width" value="800" min="100" max="1920" />
+            </div>
+            <div class="control-group">
+                <label for="height">Height</label>
+                <input type="number" id="height" value="600" min="100" max="1080" />
+            </div>
+            <div class="control-group">
+                <label for="resolution">Resolution</label>
+                <select id="resolution">
+                    <option value="1" selected>1x (Normal)</option>
+                    <option value="2">2x (High)</option>
+                    <option value="3">3x (Very High)</option>
+                    <option value="4">4x (Ultra)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="transparent">Background</label>
+                <select id="transparent">
+                    <option value="false">White</option>
+                    <option value="true">Transparent</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="exportFormat">Export Format</label>
+                <select id="exportFormat">
+                    <option value="zip">ZIP (PNG Frames)</option>
+                    <option value="mov">MOV (ProRes 4444)</option>
+                    <option value="webm">WebM (VP9)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="videoQuality">Video Quality</label>
+                <select id="videoQuality">
+                    <option value="medium">Medium</option>
+                    <option value="high" selected>High</option>
+                    <option value="lossless">Lossless</option>
+                    <option value="low">Low</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="animationSpeed">Animation Speed: <span id="speedValue">1.0x</span></label>
+                <input type="range" id="animationSpeed" min="0.1" max="3.0" step="0.1" value="1.0">
+            </div>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="preview"></canvas>
+        </div>
+        
+        <div class="button-group">
+            <button class="btn-primary" onclick="renderAnimation()">🚀 Start Rendering</button>
+            <button class="btn-secondary" onclick="resetAnimation()">↻ Reset</button>
+        </div>
+        
+        <div class="status-container">
+            <div class="status-title">Status</div>
+            <div id="status">Ready to render...</div>
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill">0%</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_URL = 'http://localhost:3001';
+        let animationFrame = 0;
+        let currentAnimation = 'spiral';
+        
+        // Animation options
+        document.querySelectorAll('.animation-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.animation-option').forEach(o => o.classList.remove('selected'));
+                this.classList.add('selected');
+                currentAnimation = this.dataset.animation;
+                resetAnimation();
+            });
+        });
+        
+        // Animation natural loop periods (in seconds)
+        const animationLoopPeriods = {
+            spiral: Math.PI,        // time * 2 → loops every π seconds 
+            wave: (2 * Math.PI) / 3, // time * 3 → loops every 2π/3 seconds
+            particles: 2 * Math.PI,  // LCM of time*2 and time*3 → loops every 2π seconds  
+            rainbow: Math.PI         // time * 2 → loops every π seconds
+        };
+        
+        // Animation functions with natural loop periods
+        const animations = {
+            spiral: function(ctx, time, width, height) {
+                ctx.clearRect(0, 0, width, height);
+                
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const maxRadius = Math.min(width, height) * 0.4;
+                
+                for (let i = 0; i < 5; i++) {
+                    const angle = time * 2 + i * Math.PI / 2.5;
+                    const radius = maxRadius * (0.5 + 0.5 * Math.sin(time + i));
+                    const x = centerX + Math.cos(angle) * radius;
+                    const y = centerY + Math.sin(angle) * radius;
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 20 + i * 5, 0, Math.PI * 2);
+                    ctx.fillStyle = 'hsl(' + ((time * 100 + i * 60) % 360) + ', 70%, 50%)';
+                    ctx.fill();
+                }
+            },
+            
+            wave: function(ctx, time, width, height) {
+                ctx.clearRect(0, 0, width, height);
+                
+                ctx.beginPath();
+                ctx.moveTo(0, height / 2);
+                
+                for (let x = 0; x <= width; x += 5) {
+                    const y = height / 2 + Math.sin((x / 50) + time * 3) * 100;
+                    ctx.lineTo(x, y);
+                }
+                
+                ctx.strokeStyle = 'hsl(' + (time * 50) + ', 70%, 50%)';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                
+                // Add circles along the wave
+                for (let x = 0; x <= width; x += 50) {
+                    const y = height / 2 + Math.sin((x / 50) + time * 3) * 100;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 10, 0, Math.PI * 2);
+                    ctx.fillStyle = 'hsl(' + ((time * 50 + x / 2) % 360) + ', 70%, 50%)';
+                    ctx.fill();
+                }
+            },
+            
+            particles: function(ctx, time, width, height) {
+                // Slight transparency effect for particle trails
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.fillRect(0, 0, width, height);
+                
+                const particleCount = 50;
+                for (let i = 0; i < particleCount; i++) {
+                    const x = (width / 2) + Math.cos(time * 2 + i * 0.5) * (100 + i * 3);
+                    const y = (height / 2) + Math.sin(time * 3 + i * 0.5) * (100 + i * 2);
+                    const size = 2 + Math.sin(time * 5 + i) * 2;
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, size, 0, Math.PI * 2);
+                    ctx.fillStyle = 'hsl(' + (i * 7 + time * 100) + ', 70%, 50%)';
+                    ctx.fill();
+                }
+            },
+            
+            rainbow: function(ctx, time, width, height) {
+                ctx.clearRect(0, 0, width, height);
+                
+                const bars = 20;
+                const barWidth = width / bars;
+                
+                for (let i = 0; i < bars; i++) {
+                    const barHeight = Math.abs(Math.sin(time * 2 + i * 0.3)) * 300 + 50;
+                    const x = i * barWidth;
+                    const y = (height - barHeight) / 2;
+                    
+                    ctx.fillStyle = 'hsl(' + (i * 360 / bars + time * 100) + ', 70%, 50%)';
+                    ctx.fillRect(x, y, barWidth - 2, barHeight);
+                }
+            }
+        };
+        
+        // Preview animation
+        function setupPreview() {
+            const canvas = document.getElementById('preview');
+            const ctx = canvas.getContext('2d');
+            const width = parseInt(document.getElementById('width').value);
+            const height = parseInt(document.getElementById('height').value);
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            function animate() {
+                const fps = parseInt(document.getElementById('fps').value);
+                const speed = parseFloat(document.getElementById('animationSpeed').value);
+                const duration = parseInt(document.getElementById('duration').value);
+                const perfectLoop = false;
+                
+                let time = (animationFrame / fps) * speed;
+                
+                // Apply perfect loop logic to preview using animation's natural period
+                if (perfectLoop) {
+                    const naturalPeriod = animationLoopPeriods[currentAnimation];
+                    time = time % naturalPeriod;
+                }
+                
+                animations[currentAnimation](ctx, time, width, height);
+                animationFrame++;
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+        
+        function resetAnimation() {
+            animationFrame = 0;
+            setupPreview();
+        }
+        
+        function updateStatus(message, isHtml = false) {
+            const statusEl = document.getElementById('status');
+            if (isHtml) {
+                statusEl.innerHTML = message;
+            } else {
+                statusEl.textContent = message;
+            }
+        }
+        
+        function updateProgress(current, total) {
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            
+            if (current === 0 && total === 0) {
+                progressBar.style.display = 'none';
+                return;
+            }
+            
+            progressBar.style.display = 'block';
+            const percentage = Math.round((current / total) * 100);
+            progressFill.style.width = percentage + '%';
+            progressFill.textContent = percentage + '%';
+        }
+        
+        async function renderAnimation() {
+            const duration = parseInt(document.getElementById('duration').value);
+            const fps = parseInt(document.getElementById('fps').value);
+            const width = parseInt(document.getElementById('width').value);
+            const height = parseInt(document.getElementById('height').value);
+            const resolution = parseInt(document.getElementById('resolution').value);
+            const transparent = document.getElementById('transparent').value === 'true';
+            const exportFormat = document.getElementById('exportFormat').value;
+            const videoQuality = document.getElementById('videoQuality').value;
+            const animationSpeed = parseFloat(document.getElementById('animationSpeed').value);
+            const perfectLoop = false;
+            
+            // Generate HTML with selected animation and its natural loop period
+            const animationCode = animations[currentAnimation].toString();
+            const naturalPeriod = animationLoopPeriods[currentAnimation];
+            const html = `<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { margin: 0; padding: 0; ${transparent ? 'background: transparent;' : 'background: white;'} }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="${width}" height="${height}"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const animation = ${animationCode};
+        const naturalPeriod = ${naturalPeriod};
+        
+        window.updateAnimation = function(time) {
+            // Perfect loop: use animation's natural period for seamless looping
+            let adjustedTime = time * ${animationSpeed};
+            if (${perfectLoop}) {
+                adjustedTime = adjustedTime % naturalPeriod;
+            }
+            animation(ctx, adjustedTime, ${width}, ${height});
+        };
+        
+        // Initial frame
+        animation(ctx, 0, ${width}, ${height});
+    <\/script>
+</body>
+</html>`;
+            
+            updateStatus('🔄 Creating render job...');
+            updateProgress(0, 0);
+            
+            try {
+                // Create render job
+                const createResponse = await fetch(`${API_URL}/render`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        html: html,
+                        duration: duration,
+                        fps: fps,
+                        width: width,
+                        height: height,
+                        resolution: resolution,
+                        transparent: transparent,
+                        toolName: 'visual-test',
+                        exportFormat: exportFormat,
+                        videoQuality: videoQuality,
+                        animationSpeed: animationSpeed,
+                        perfectLoop: perfectLoop,
+                        naturalPeriod: naturalPeriod
+                    })
+                });
+                
+                if (!createResponse.ok) {
+                    throw new Error('Failed to create render job');
+                }
+                
+                const job = await createResponse.json();
+                updateStatus(`📋 Job created: ${job.jobId}\nTotal frames: ${job.totalFrames}`);
+                
+                // Poll for status
+                const pollInterval = setInterval(async () => {
+                    const statusResponse = await fetch(`${API_URL}/status/${job.jobId}`);
+                    const status = await statusResponse.json();
+                    
+                    if (status.status === 'completed') {
+                        clearInterval(pollInterval);
+                        updateProgress(status.totalFrames, status.totalFrames);
+                        
+                        // Determine file extension and icon based on format
+                        let fileExt = 'zip';
+                        let icon = '📦';
+                        let formatName = 'ZIP';
+                        
+                        if (status.exportFormat === 'mov') {
+                            fileExt = 'mov';
+                            icon = '🎬';
+                            formatName = 'MOV';
+                        } else if (status.exportFormat === 'webm') {
+                            fileExt = 'webm';
+                            icon = '🎥';
+                            formatName = 'WebM';
+                        }
+                        
+                        updateStatus(`✅ Rendering completed!\nFormat: ${formatName} • Size: ${status.fileSize}\n<a href="${API_URL}/download/${job.jobId}" class="download-link" download="render-${job.jobId}.${fileExt}">${icon} Download ${formatName}</a>`, true);
+                    } else if (status.status === 'failed') {
+                        clearInterval(pollInterval);
+                        updateProgress(0, 0);
+                        updateStatus(`❌ Rendering failed: ${status.error}`);
+                    } else {
+                        updateProgress(status.currentFrame || 0, status.totalFrames);
+                        updateStatus(`🎬 Rendering: ${status.currentFrame || 0}/${status.totalFrames} frames`);
+                    }
+                }, 500);
+                
+            } catch (error) {
+                updateStatus(`❌ Error: ${error.message}`);
+                updateProgress(0, 0);
+            }
+        }
+        
+        // Check if server is running
+        async function checkServer() {
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                if (!response.ok) throw new Error();
+                updateStatus('✅ Server is running! Ready to render...');
+            } catch (error) {
+                updateStatus('❌ Server is not running! Start it with: npm start');
+            }
+        }
+        
+        // Update speed display when slider changes
+        function updateSpeedDisplay() {
+            const speed = document.getElementById('animationSpeed').value;
+            document.getElementById('speedValue').textContent = speed + 'x';
+        }
+        
+        // Add event listeners for settings changes
+        document.getElementById('width').addEventListener('change', resetAnimation);
+        document.getElementById('height').addEventListener('change', resetAnimation);
+        document.getElementById('fps').addEventListener('change', resetAnimation);
+        document.getElementById('transparent').addEventListener('change', resetAnimation);
+        document.getElementById('animationSpeed').addEventListener('input', function() {
+            updateSpeedDisplay();
+            resetAnimation();
+        });
+        document.getElementById('duration').addEventListener('change', resetAnimation);
+        
+        // Initialize
+        setupPreview();
+        checkServer();
+    </script>
+</body>
+</html>

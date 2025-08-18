@@ -1,5 +1,3 @@
-const puppeteer = require('puppeteer-core');
-const chromium = require('@sparticuz/chromium');
 const path = require('path');
 const fs = require('fs').promises;
 const config = require('../config');
@@ -9,18 +7,41 @@ const packager = require('./packager');
 class Renderer {
   constructor() {
     this.browser = null;
+    this.puppeteer = null;
+    this.chromium = null;
+  }
+  
+  async initializePuppeteer() {
+    if (!this.puppeteer) {
+      // Try to use regular puppeteer for local development
+      try {
+        this.puppeteer = require('puppeteer');
+        console.log('Using regular Puppeteer for local development');
+      } catch (e) {
+        // Fall back to puppeteer-core for production
+        this.puppeteer = require('puppeteer-core');
+        this.chromium = require('@sparticuz/chromium');
+        console.log('Using puppeteer-core with @sparticuz/chromium for production');
+      }
+    }
+    return this.puppeteer;
   }
   
   async getBrowser() {
     if (!this.browser || !this.browser.isConnected()) {
-      // Use @sparticuz/chromium for Render.com
-      const executablePath = await chromium.executablePath();
+      const puppeteer = await this.initializePuppeteer();
       
-      this.browser = await puppeteer.launch({
-        ...config.puppeteer,
-        executablePath: executablePath,
-        args: chromium.args.concat(config.puppeteer.args || [])
-      });
+      let launchOptions = { ...config.puppeteer };
+      
+      // If using puppeteer-core (production), set executable path
+      if (this.chromium) {
+        const executablePath = await this.chromium.executablePath();
+        launchOptions.executablePath = executablePath;
+        launchOptions.args = this.chromium.args.concat(config.puppeteer.args || []);
+      }
+      // For local development with regular puppeteer, it will find Chrome automatically
+      
+      this.browser = await puppeteer.launch(launchOptions);
     }
     return this.browser;
   }
@@ -38,11 +59,11 @@ class Renderer {
       const browser = await this.getBrowser();
       const page = await browser.newPage();
       
-      // Set viewport with resolution multiplier
+      // Set viewport with resolution multiplier using deviceScaleFactor
       await page.setViewport({
-        width: job.data.width * job.data.resolution,
-        height: job.data.height * job.data.resolution,
-        deviceScaleFactor: 1
+        width: job.data.width,
+        height: job.data.height,
+        deviceScaleFactor: job.data.resolution
       });
       
       // Create HTML with animation
@@ -50,7 +71,7 @@ class Renderer {
       await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
       
       // Wait for any initial setup
-      await page.waitForTimeout(500);
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Inject animation controller
       await page.evaluate((animationCode) => {
@@ -101,12 +122,28 @@ class Renderer {
       }, job.data.animationCode || '');
       
       // Capture frames
-      const totalFrames = job.totalFrames;
-      console.log(`Starting capture of ${totalFrames} frames for job ${job.id}`);
+      let totalFrames = job.totalFrames;
+      
+      // For perfect loops, capture one less frame since last frame = first frame
+      if (job.data.perfectLoop) {
+        totalFrames = totalFrames - 1;
+        console.log(`Starting capture of ${totalFrames} frames for job ${job.id} (perfect loop: last frame will be first frame)`);
+      } else {
+        console.log(`Starting capture of ${totalFrames} frames for job ${job.id}`);
+      }
       
       for (let frame = 0; frame < totalFrames; frame++) {
         // Update animation time
-        const currentTime = frame / job.data.fps;
+        let currentTime = frame / job.data.fps;
+        
+        // Apply perfect loop logic - map time to animation's natural period
+        if (job.data.perfectLoop) {
+          const naturalPeriod = job.data.naturalPeriod || job.data.duration;
+          currentTime = (currentTime * (job.data.animationSpeed || 1)) % naturalPeriod;
+        } else {
+          currentTime = currentTime * (job.data.animationSpeed || 1);
+        }
+        
         await page.evaluate((time) => {
           if (window.setAnimationTime) {
             window.setAnimationTime(time);
@@ -114,7 +151,7 @@ class Renderer {
         }, currentTime);
         
         // Small delay to ensure rendering is complete
-        await page.waitForTimeout(50);
+        await new Promise(resolve => setTimeout(resolve, 50));
         
         // Capture frame
         const framePath = path.join(framesDir, `frame_${String(frame).padStart(4, '0')}.png`);
@@ -137,21 +174,36 @@ class Renderer {
       
       await page.close();
       
-      console.log(`Packaging frames for job ${job.id}`);
+      console.log(`Packaging frames for job ${job.id} (format: ${job.data.exportFormat})`);
       
-      // Package frames into ZIP
-      const zipPath = await packager.createZip(job.id, framesDir);
+      let outputPath;
+      let fileSize;
+      
+      // Create output based on export format
+      if (job.data.exportFormat === 'zip') {
+        outputPath = await packager.createZip(job.id, framesDir);
+      } else {
+        // Video format (mov or webm)
+        outputPath = await packager.createVideo(job.id, framesDir, {
+          format: job.data.exportFormat,
+          fps: job.data.fps,
+          width: job.data.width,
+          height: job.data.height,
+          quality: job.data.videoQuality || 'high'
+        });
+      }
       
       // Get file size
-      const stats = await fs.stat(zipPath);
-      const fileSize = `${Math.round(stats.size / 1024 / 1024)}MB`;
+      const stats = await fs.stat(outputPath);
+      fileSize = `${Math.round(stats.size / 1024 / 1024)}MB`;
       
       // Update job with completion info
       jobQueue.updateJob(job.id, {
-        fileSize: fileSize
+        fileSize: fileSize,
+        exportFormat: job.data.exportFormat
       });
       
-      console.log(`Job ${job.id} completed successfully`);
+      console.log(`Job ${job.id} completed successfully (${fileSize})`);
       
     } catch (error) {
       console.error(`Render error for job ${job.id}:`, error);

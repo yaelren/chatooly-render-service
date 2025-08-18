@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jobQueue = require('../lib/jobQueue');
 const config = require('../config');
+const packager = require('../workers/packager');
 
 router.post('/', async (req, res) => {
   try {
@@ -15,7 +16,12 @@ router.post('/', async (req, res) => {
       resolution = 2,
       transparent = true,
       toolName = 'unknown',
-      animationCode = ''
+      animationCode = '',
+      exportFormat = 'zip',
+      videoQuality = 'high',
+      animationSpeed = 1,
+      perfectLoop = false,
+      naturalPeriod = null
     } = req.body;
     
     // Input validation
@@ -26,8 +32,9 @@ router.post('/', async (req, res) => {
       });
     }
     
-    // Validate limits
-    const totalFrames = duration * fps;
+    // Validate limits - use natural period for perfect loops
+    const effectiveDuration = (perfectLoop && naturalPeriod) ? naturalPeriod : duration;
+    const totalFrames = Math.ceil(effectiveDuration * fps);
     if (totalFrames > config.rendering.maxFramesPerJob) {
       return res.status(400).json({
         error: `Too many frames requested. Maximum is ${config.rendering.maxFramesPerJob} frames`,
@@ -41,6 +48,16 @@ router.post('/', async (req, res) => {
         status: 400
       });
     }
+
+    // Validate export format
+    const availableFormats = packager.getAvailableFormats();
+    if (!availableFormats.includes(exportFormat)) {
+      return res.status(400).json({
+        error: `Invalid export format. Available formats: ${availableFormats.join(', ')}`,
+        status: 400,
+        availableFormats
+      });
+    }
     
     // Create job
     const job = jobQueue.createJob({
@@ -52,7 +69,12 @@ router.post('/', async (req, res) => {
       resolution,
       transparent,
       toolName,
-      animationCode
+      animationCode,
+      exportFormat,
+      videoQuality,
+      animationSpeed,
+      perfectLoop,
+      naturalPeriod
     });
     
     res.json({
@@ -66,6 +88,25 @@ router.post('/', async (req, res) => {
     console.error('Render error:', error);
     res.status(500).json({
       error: 'Failed to create render job',
+      status: 500
+    });
+  }
+});
+
+// Get available export formats
+router.get('/formats', async (req, res) => {
+  try {
+    const formats = packager.getAvailableFormats();
+    const formatInfo = packager.getFormatInfo();
+    
+    res.json({
+      availableFormats: formats,
+      formatDetails: formatInfo
+    });
+  } catch (error) {
+    console.error('Error getting formats:', error);
+    res.status(500).json({
+      error: 'Failed to get available formats',
       status: 500
     });
   }

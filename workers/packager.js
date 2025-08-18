@@ -1,6 +1,7 @@
 const archiver = require('archiver');
 const fs = require('fs');
 const path = require('path');
+const videoEncoder = require('./video-encoder');
 
 class Packager {
   async createZip(jobId, framesDir) {
@@ -63,6 +64,60 @@ class Packager {
       // Finalize the archive
       archive.finalize();
     });
+  }
+
+  async createVideo(jobId, framesDir, options = {}) {
+    try {
+      // Initialize video encoder if not already done
+      await videoEncoder.initialize();
+      
+      // Create video with specified options
+      const result = await videoEncoder.createVideo(jobId, framesDir, options);
+      
+      console.log(`Video created for job ${jobId}: ${result.path} (${result.size})`);
+      return result.path;
+      
+    } catch (error) {
+      console.error(`Video creation failed for job ${jobId}:`, error.message);
+      throw error;
+    }
+  }
+
+  // Get available export formats
+  getAvailableFormats() {
+    const formats = ['zip']; // ZIP is always available
+    
+    try {
+      // Check if video encoder is available
+      const videoFormats = videoEncoder.getSupportedFormats();
+      formats.push(...videoFormats);
+    } catch (error) {
+      console.log('Video export not available:', error.message);
+    }
+    
+    return formats;
+  }
+
+  // Get format information
+  getFormatInfo() {
+    const info = {
+      zip: {
+        name: 'ZIP (PNG Sequence)',
+        description: 'Collection of individual PNG frames',
+        pros: ['Frame-by-frame control', 'Universal compatibility', 'No quality loss'],
+        cons: ['Large file sizes', 'Requires assembly for playback'],
+        bestFor: 'Professional editing, frame analysis, maximum flexibility'
+      }
+    };
+    
+    try {
+      const videoInfo = videoEncoder.getFormatInfo();
+      Object.assign(info, videoInfo);
+    } catch (error) {
+      // Video encoder not available
+    }
+    
+    return info;
   }
 }
 
