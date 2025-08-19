@@ -65,24 +65,38 @@ app.use((req, res) => {
   });
 });
 
-// Cleanup job - runs every hour
-cron.schedule('0 * * * *', async () => {
+// Cleanup job - runs every 30 minutes
+cron.schedule('*/30 * * * *', async () => {
   console.log('Running cleanup job...');
   try {
+    // Clean up old files
     const tempDir = path.join(__dirname, 'storage', 'temp');
     const files = await fs.readdir(tempDir);
     const now = Date.now();
-    const oneHour = 60 * 60 * 1000;
+    const thirtyMinutes = 30 * 60 * 1000;
     
     for (const file of files) {
       const filePath = path.join(tempDir, file);
       const stats = await fs.stat(filePath);
       
-      if (now - stats.mtime.getTime() > oneHour) {
+      if (now - stats.mtime.getTime() > thirtyMinutes) {
         await fs.rm(filePath, { recursive: true, force: true });
-        console.log(`Cleaned up old job: ${file}`);
+        console.log(`Cleaned up old file: ${file}`);
       }
     }
+    
+    // Clean up old jobs from memory
+    jobQueue.cleanupOldJobs();
+    
+    // Force garbage collection if available
+    if (global.gc) {
+      global.gc();
+      console.log('Forced garbage collection');
+    }
+    
+    // Log memory usage
+    const memUsage = process.memoryUsage();
+    console.log(`Memory usage: RSS=${Math.round(memUsage.rss / 1024 / 1024)}MB, Heap=${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`);
   } catch (error) {
     console.error('Cleanup error:', error);
   }

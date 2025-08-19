@@ -4,7 +4,7 @@
   "description": "High-resolution PNG sequence rendering service for Chatooly tools",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node --expose-gc --max-old-space-size=450 server.js",
     "dev": "nodemon server.js",
     "test": "jest",
     "test:watch": "jest --watch"
